@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LUMINA STUDIO | v17.0 VISION</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        :root { --cyan: #00e5ff; --red: #ff1744; --bg: #000; --win-bg: rgba(10, 10, 10, 0.98); }
+        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; background: var(--bg); color: white; font-family: 'Consolas', monospace; overflow: hidden; height: 100%; width: 100%; touch-action: none; }
+        
+        #desktop { display: none; width: 100vw; height: 100vh; background: radial-gradient(circle at center, #050c16 0%, #000 100%); position: relative; overflow: hidden; }
+
+        /* Masaüstü */
+        .ds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); padding: 20px; gap: 15px; position: absolute; width: 100%; z-index: 1; }
+        .item { text-align: center; cursor: pointer; padding: 10px; border: 1px solid transparent; transition: 0.2s; pointer-events: auto; }
+        .item:hover { background: rgba(0, 229, 255, 0.1); border: 1px solid var(--cyan); border-radius: 5px; }
+        .item img { width: 45px; height: 45px; filter: drop-shadow(0 0 5px var(--cyan)); pointer-events: none; }
+        .item p { font-size: 10px; margin-top: 5px; word-break: break-all; }
+
+        /* Pencere Sistemi */
+        .window { position: absolute; background: var(--win-bg); border: 1.5px solid var(--cyan); display: none; flex-direction: column; width: 90vw; max-width: 450px; z-index: 100; box-shadow: 0 0 40px #000; border-radius: 4px; }
+        .win-h { background: var(--cyan); color: #000; padding: 12px; display: flex; justify-content: space-between; font-weight: bold; cursor: move; user-select: none; }
+        .win-b { padding: 15px; overflow-y: auto; max-height: 60vh; }
+
+        /* Resim Önizleme Alanı */
+        #img-viewer { width: 100%; display: none; border: 1px solid #333; margin-bottom: 10px; border-radius: 4px; overflow: hidden; }
+        #img-viewer img { width: 100%; height: auto; display: block; }
+
+        /* UI */
+        .btn { width: 100%; padding: 12px; background: var(--cyan); border: none; font-weight: bold; cursor: pointer; color: #000; font-size: 12px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #333; color: var(--cyan); }
+        
+        /* Alarm */
+        #panic { position: fixed; inset: 0; background: #000; z-index: 99999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; animation: flash 0.5s infinite; }
+        @keyframes flash { 0% { background: #000; } 50% { background: #400; } }
+    </style>
+</head>
+<body oncontextmenu="return openCtx(event)">
+
+    <audio id="alarmSnd" loop><source src="https://www.soundjay.com/buttons/beep-01a.mp3" type="audio/mpeg"></audio>
+
+    <div id="login" style="display: flex; align-items: center; justify-content: center; height: 100vh;">
+        <div style="border: 1px solid var(--cyan); padding: 35px; background: #050505; width: 320px; text-align: center;">
+            <h2 style="color:var(--cyan)">LUMINA APEX</h2>
+            <input type="text" id="u" placeholder="KULLANICI">
+            <input type="password" id="p" placeholder="ŞİFRE">
+            <button class="btn" onclick="boot()">SİSTEMİ AÇ</button>
+        </div>
+    </div>
+
+    <div id="desktop">
+        <div class="ds-grid" id="grid"></div>
+
+        <div id="editor" class="window" style="top:50px; left:20px;">
+            <div class="win-h"><span id="ed-title">Görüntüleyici</span><span onclick="toggle('editor')" style="cursor:pointer">X</span></div>
+            <div class="win-b">
+                <div id="img-viewer"><img id="preview-img" src=""></div>
+                
+                <textarea id="ed-text" style="width:100%; height:200px; background:#000; color:#0f0; border:1px solid #222; padding:10px; font-family:monospace;"></textarea>
+                
+                <div style="display:flex; gap:10px; margin-top:15px;">
+                    <button class="btn" style="flex:1" onclick="save()">KAYDET</button>
+                    <button class="btn" style="flex:1; background:red; color:#fff;" onclick="del()">SİL</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="realUpload" style="display:none" onchange="handleFile(this)">
+
+    <script>
+        const S_ID = 'service_ifghu42', P_KEY = 'MAtzqur-O9Q90HNNW', T_ID = 'Template_decehjf';
+        emailjs.init(P_KEY);
+
+        let files = [{name:'Hoşgeldin.txt', content:'Resim yükleyip test edebilirsiniz.'}];
+        let cur = null;
+
+        function boot() {
+            if(document.getElementById('u').value === "USER" && document.getElementById('p').value === "Lumina2026!") {
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('desktop').style.display = 'block';
+                render();
+                checkSecurity();
+            } else {
+                alert("Hata 03: Yetkisiz Giriş!");
+            }
+        }
+
+        // RESİM / DOSYA YÜKLEME
+        function handleFile(input) {
+            const f = input.files[0];
+            if(!f) return;
+            const r = new FileReader();
+            r.onload = (e) => {
+                files.push({ name: f.name, content: e.target.result });
+                render();
+            };
+            // Resimse veya PDF/Dosyaysa DataURL olarak oku
+            if(f.type.startsWith('text')) r.readAsText(f);
+            else r.readAsDataURL(f);
+        }
+
+        function render() {
+            const g = document.getElementById('grid'); g.innerHTML = '';
+            files.forEach((f, i) => {
+                const isImg = f.content.startsWith('data:image');
+                const icon = isImg ? 'https://cdn-icons-png.flaticon.com/512/3342/3342137.png' : 'https://cdn-icons-png.flaticon.com/512/2965/2965335.png';
+                g.innerHTML += `<div class="item" onclick="openF(${i})"><img src="${icon}"><p>${f.name}</p></div>`;
+            });
+        }
+
+        function openF(i) {
+            cur = i;
+            const f = files[i];
+            const isImg = f.content.startsWith('data:image');
+            
+            document.getElementById('ed-title').innerText = f.name;
+            
+            if(isImg) {
+                document.getElementById('img-viewer').style.display = 'block';
+                document.getElementById('preview-img').src = f.content;
+                document.getElementById('ed-text').style.display = 'none';
+            } else {
+                document.getElementById('img-viewer').style.display = 'none';
+                document.getElementById('ed-text').style.display = 'block';
+                document.getElementById('ed-text').value = f.content;
+            }
+            document.getElementById('editor').style.display = 'flex';
+        }
+
+        function save() { 
+            if(document.getElementById('ed-text').style.display !== 'none') {
+                files[cur].content = document.getElementById('ed-text').value;
+                alert("Kaydedildi.");
+            } else {
+                alert("Görsel dosyaları manuel düzenlenemez.");
+            }
+        }
+
+        function del() { files.splice(cur, 1); render(); toggle('editor'); }
+        function toggle(id) { const w = document.getElementById(id); w.style.display = (w.style.display==='flex'?'none':'flex'); }
+        function openCtx(e) { e.preventDefault(); document.getElementById('realUpload').click(); return false; }
+
+        function checkSecurity() {
+            navigator.getBattery().then(b => {
+                setInterval(() => { if(!b.charging && b.level*100 < 90) location.reload(); }, 5000);
+            });
+        }
+    </script>
+</body>
+</html>
