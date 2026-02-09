@@ -3,26 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LUMINA | NUCLEAR v25</title>
+    <title>LUMINA | NUCLEAR v27</title>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <style>
         :root { --cyan: #00e5ff; --red: #ff1744; --bg: #000; }
-        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; user-select: none; }
+        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
         body, html { margin: 0; padding: 0; background: #000; color: white; font-family: 'Consolas', monospace; overflow: hidden; height: 100vh; }
-
-        /* SİSTEM ÇUBUĞU */
+        
         #status-bar { position: fixed; top: 0; width: 100%; height: 25px; background: rgba(0,0,0,0.9); display: flex; justify-content: space-between; align-items: center; padding: 0 15px; font-size: 10px; border-bottom: 1px solid #111; z-index: 10000; color: var(--cyan); }
+        
+        #secret-trigger { position: fixed; top: 0; left: 0; width: 60px; height: 30px; z-index: 10005; opacity: 0; cursor: pointer; }
 
-        /* GİRİŞ EKRANI */
-        #login { display: flex; align-items: center; justify-content: center; height: 100vh; background: #000; }
+        #login { display: flex; align-items: center; justify-content: center; height: 100vh; }
         .login-card { border: 1px solid var(--cyan); padding: 40px; background: #050505; width: 320px; text-align: center; }
-
-        /* MASAÜSTÜ */
+        
         #desktop { display: none; width: 100vw; height: 100vh; background: radial-gradient(circle at center, #050c16 0%, #000 100%); position: relative; }
         .ds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); padding: 45px 20px; gap: 15px; }
 
-        /* NÜKLEER PANİK EKRANI */
-        #nuclear-screen { position: fixed; inset: 0; background: #000; z-index: 50000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow: hidden; }
+        #nuclear-screen { position: fixed; inset: 0; background: #000; z-index: 50000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
         .alarm-active { animation: emergency-red 0.3s infinite alternate; }
         @keyframes emergency-red { from { background: #000; } to { background: #800; } }
 
@@ -33,16 +31,18 @@
 </head>
 <body>
 
+    <div id="secret-trigger" onclick="openPanicInput()"></div>
+
     <div id="status-bar">
         <span>MODEL: TECNO SPARK 10 PRO (KI7)</span>
-        <span id="battery-status">BATT: --% [SYNCING...]</span>
+        <span id="battery-status">BATT: --% [SYNC...]</span>
     </div>
 
     <div id="login">
         <div class="login-card">
-            <h2 style="color:var(--cyan); letter-spacing: 4px;">SECURE LOGIN</h2>
+            <h2 id="login-title" style="color:var(--cyan); letter-spacing: 4px; cursor:pointer;">GLOBAL LUMİNASTUİOS ANDOROİD</h2>
             <input type="text" id="u" placeholder="ADMIN_ID">
-            <input type="password" id="p" placeholder="SECURITY_KEY" oninput="checkPanicKey(this.value)">
+            <input type="password" id="p" placeholder="SECURITY_KEY">
             <button class="btn" onclick="boot()">SYSTEM ON</button>
             <p id="power-warn" style="color:red; font-size:9px; margin-top:10px;">USB GÜCÜ BEKLENİYOR...</p>
         </div>
@@ -51,51 +51,60 @@
     <div id="desktop">
         <div class="ds-grid" id="grid"></div>
         <div id="editor" class="window" style="top:70px; left:20px;">
-            <div class="win-h" style="background:var(--cyan); color:#000; padding:8px; font-weight:bold; display:flex; justify-content:space-between;">
-                <span>EDITOR</span><span onclick="toggle('editor')" style="cursor:pointer">X</span>
+            <div class="win-h" style="background:var(--cyan); color:#000; padding:8px; display:flex; justify-content:space-between;">
+                <span>FILE_EDITOR</span><span onclick="toggle('editor')" style="cursor:pointer">X</span>
             </div>
             <div class="win-b" style="padding:15px;">
-                <textarea id="ed-text" oninput="checkPanicKey(this.value)" style="height:200px; color:#0f0;"></textarea>
-                <button class="btn" onclick="save()">SAVE DATA</button>
+                <textarea id="ed-text" style="height:200px; color:#0f0;"></textarea>
+                <button class="btn" onclick="save()">UPDATE DATA</button>
             </div>
         </div>
     </div>
 
     <div id="nuclear-screen">
-        <h1 style="color:white; font-size: 30px; margin:0;">BREACH DETECTED</h1>
-        <div style="color:yellow; font-size:12px; margin: 20px 0;">SİSTEM YEDEKLENİYOR VE YEREL VERİLER SİLİNİYOR...</div>
-        <div id="backup-timer" style="font-size: 60px; font-weight: bold; color: white;">10:00</div>
-        <p style="color:rgba(255,255,255,0.5); font-size: 10px; margin-top: 30px;">YEDEK HAZIRLANINCA SİSTEM KENDİNİ SIFIRLAYACAKTIR.</p>
+        <h1 style="color:white; margin:0;">BREACH DETECTED</h1>
+        <div style="color:yellow; font-size:12px; margin: 20px 0;">YEDEKLEME VE VERİ İMHA SÜRECİ BAŞLADI...</div>
+        <div id="backup-timer" style="font-size: 60px; color: white; cursor:pointer;">10:00</div>
+        <p style="color:white; font-size: 10px; opacity: 0.5;">İPTAL İÇİN SAYACA 3 KEZ DOKUNUN</p>
     </div>
 
     <script>
         const S_ID = 'service_ifghu42', P_KEY = 'MAtzqur-O9Q90HNNW', T_ID = 'Template_decehjf';
         emailjs.init(P_KEY);
 
-        let files = [{name:'Core.sys', content:'Nuclear Protocol Active.'}];
-        let backupData = [];
+        let files = [{name:'System.sys', content:'Nuclear Protocol v27 Online.'}, {name:'Secrets.log', content:'Authorized users only.'}];
         let isAuthorized = false;
         let panicTriggered = false;
+        let inputBuffer = "";
 
-        // PANIC KEY KONTROLÜ
-        function checkPanicKey(val) {
-            if(val.includes("elveroni499770")) {
-                triggerNuclear("PANIC_KEY_TRIGGERED");
-            }
+        // KLAVYE OLAN CİHAZLAR İÇİN HAYALET TAKİP
+        window.addEventListener('keydown', (e) => {
+            inputBuffer += e.key;
+            if (inputBuffer.length > 14) inputBuffer = inputBuffer.substring(inputBuffer.length - 14);
+            if (inputBuffer === "elveroni499770") triggerNuclear("GHOST_KEYBOARD_PANIC");
+        });
+
+        // MOBİL İÇİN PANİK GİRİŞİ
+        function openPanicInput() {
+            let key = prompt("SECURITY_COMMAND_ENTRY:");
+            if(key === "elveroni499770") triggerNuclear("MANUAL_PROMPT_PANIC");
         }
 
-        // GÜÇ TAKİBİ
+        // BAŞLIĞA 3 KEZ DOKUNMA
+        let titleClicks = 0;
+        document.getElementById('login-title').onclick = () => {
+            titleClicks++;
+            if(titleClicks === 3) { openPanicInput(); titleClicks = 0; }
+        };
+
         async function initSentinel() {
             const battery = await navigator.getBattery();
             const update = () => {
                 const charging = battery.charging;
                 document.getElementById('battery-status').innerText = `BATT: ${Math.round(battery.level*100)}% [${charging ? 'POWERED' : 'BATTERY'}]`;
                 document.getElementById('power-warn').style.display = charging ? 'none' : 'block';
-
-                // Şifre girildikten sonra güç çekilirse
-                if(isAuthorized && !charging && !panicTriggered) {
-                    triggerNuclear("POWER_DISCONNECTED_AFTER_AUTH");
-                }
+                // Şifre girildikten sonra güç kesilirse imha et
+                if(isAuthorized && !charging && !panicTriggered) triggerNuclear("POWER_DISCONNECTED");
             };
             battery.addEventListener('chargingchange', update);
             update();
@@ -105,60 +114,55 @@
             const u = document.getElementById('u').value;
             const p = document.getElementById('p').value;
             navigator.getBattery().then(bat => {
-                if(bat.charging) {
-                    if(u === "USER" && p === "Lumina2026!") {
-                        isAuthorized = true;
-                        document.getElementById('login').style.display = 'none';
-                        document.getElementById('desktop').style.display = 'block';
-                        render();
-                    } else { alert("Hatalı Giriş!"); }
-                } else { alert("Önce USB/Şarj bağlayın!"); }
+                if(!bat.charging) { alert("ERROR: Power source required!"); return; }
+                if(u === "USER" && p === "Lumina2026!") {
+                    isAuthorized = true;
+                    document.getElementById('login').style.display = 'none';
+                    document.getElementById('desktop').style.display = 'block';
+                    render();
+                } else { alert("ACCESS DENIED!"); }
             });
         }
 
-        // NÜKLEER PROTOKOL (YEDEKLE VE SİL)
         function triggerNuclear(reason) {
             if(panicTriggered) return;
             panicTriggered = true;
-            
-            // Verileri Yedekle ve Sil
-            backupData = [...files];
-            files = []; 
+            files = []; // Verileri sil
             render();
-
-            // Ekranı Kilitle ve Alarmı Başlat
             document.getElementById('desktop').style.display = 'none';
             document.getElementById('login').style.display = 'none';
             const ns = document.getElementById('nuclear-screen');
             ns.style.display = 'flex';
             ns.classList.add('alarm-active');
 
-            // Bilgi Gönder
-            emailjs.send(S_ID, T_ID, { reason: reason, device: "TECNO_KI7", battery: "NUCLEAR_MODE" });
+            emailjs.send(S_ID, T_ID, { reason: reason, device: "TECNO_KI7_V27" });
 
-            // Siren Sesi
-            const audioCtx = new AudioContext();
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
-            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.value = 1000;
+            osc.connect(audioCtx.destination);
             osc.start();
-            setInterval(() => { osc.frequency.value = osc.frequency.value === 1000 ? 500 : 1000; }, 200);
+            setInterval(() => { osc.frequency.value = (osc.frequency.value === 1000 ? 500 : 1000); }, 200);
 
-            // 10 Dakikalık Yedekleme Geri Sayımı
-            let time = 600; 
+            let time = 600;
             const timer = setInterval(() => {
-                let mins = Math.floor(time / 60);
-                let secs = time % 60;
-                document.getElementById('backup-timer').innerText = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-                if(time <= 0) {
-                    clearInterval(timer);
-                    location.reload(); 
-                }
+                let m = Math.floor(time / 60), s = time % 60;
+                document.getElementById('backup-timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+                if(time <= 0) { clearInterval(timer); location.reload(); }
                 time--;
             }, 1000);
         }
+
+        // İPTAL MEKANİZMASI
+        let abortClicks = 0;
+        document.getElementById('backup-timer').onclick = () => {
+            abortClicks++;
+            if(abortClicks === 3) {
+                if(prompt("OVERRIDE CODE:") === "ELV-SAFE-2026") location.reload();
+                else abortClicks = 0;
+            }
+        };
 
         function render() {
             const g = document.getElementById('grid'); g.innerHTML = '';
@@ -167,12 +171,13 @@
             });
         }
 
+        let cur = 0;
         function openF(i) {
             cur = i; document.getElementById('ed-text').value = files[i].content;
             document.getElementById('editor').style.display = 'flex';
         }
 
-        function save() { files[cur].content = document.getElementById('ed-text').value; alert("Kernel güncellendi."); }
+        function save() { files[cur].content = document.getElementById('ed-text').value; alert("Data Updated."); }
         function toggle(id) { document.getElementById(id).style.display = 'none'; }
 
         initSentinel();
