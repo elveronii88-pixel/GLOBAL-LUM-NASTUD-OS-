@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LUMINA STUDIO | v17.0 VISION</title>
+    <title>LUMINA STUDIO | SENTINEL PRIME</title>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <style>
         :root { --cyan: #00e5ff; --red: #ff1744; --bg: #000; --win-bg: rgba(10, 10, 10, 0.98); }
-        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; user-select: none; }
         body, html { margin: 0; padding: 0; background: var(--bg); color: white; font-family: 'Consolas', monospace; overflow: hidden; height: 100%; width: 100%; touch-action: none; }
         
         #desktop { display: none; width: 100vw; height: 100vh; background: radial-gradient(circle at center, #050c16 0%, #000 100%); position: relative; overflow: hidden; }
@@ -15,31 +15,25 @@
         /* Masaüstü */
         .ds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); padding: 20px; gap: 15px; position: absolute; width: 100%; z-index: 1; }
         .item { text-align: center; cursor: pointer; padding: 10px; border: 1px solid transparent; transition: 0.2s; pointer-events: auto; }
-        .item:hover { background: rgba(0, 229, 255, 0.1); border: 1px solid var(--cyan); border-radius: 5px; }
         .item img { width: 45px; height: 45px; filter: drop-shadow(0 0 5px var(--cyan)); pointer-events: none; }
         .item p { font-size: 10px; margin-top: 5px; word-break: break-all; }
 
         /* Pencere Sistemi */
         .window { position: absolute; background: var(--win-bg); border: 1.5px solid var(--cyan); display: none; flex-direction: column; width: 90vw; max-width: 450px; z-index: 100; box-shadow: 0 0 40px #000; border-radius: 4px; }
-        .win-h { background: var(--cyan); color: #000; padding: 12px; display: flex; justify-content: space-between; font-weight: bold; cursor: move; user-select: none; }
+        .win-h { background: var(--cyan); color: #000; padding: 12px; display: flex; justify-content: space-between; font-weight: bold; cursor: move; }
         .win-b { padding: 15px; overflow-y: auto; max-height: 60vh; }
 
-        /* Resim Önizleme Alanı */
-        #img-viewer { width: 100%; display: none; border: 1px solid #333; margin-bottom: 10px; border-radius: 4px; overflow: hidden; }
-        #img-viewer img { width: 100%; height: auto; display: block; }
+        /* Alarm / Panik Ekranı */
+        #panic { position: fixed; inset: 0; background: #000; z-index: 99999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; animation: flash 0.3s infinite; }
+        @keyframes flash { 0% { background: #000; } 50% { background: #600; } }
+        .panic-text { color: white; font-size: 24px; font-weight: bold; text-shadow: 0 0 10px red; }
 
         /* UI */
-        .btn { width: 100%; padding: 12px; background: var(--cyan); border: none; font-weight: bold; cursor: pointer; color: #000; font-size: 12px; }
+        .btn { width: 100%; padding: 12px; background: var(--cyan); border: none; font-weight: bold; cursor: pointer; color: #000; font-size: 12px; margin-top: 5px; }
         input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #333; color: var(--cyan); }
-        
-        /* Alarm */
-        #panic { position: fixed; inset: 0; background: #000; z-index: 99999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; animation: flash 0.5s infinite; }
-        @keyframes flash { 0% { background: #000; } 50% { background: #400; } }
     </style>
 </head>
 <body oncontextmenu="return openCtx(event)">
-
-    <audio id="alarmSnd" loop><source src="https://www.soundjay.com/buttons/beep-01a.mp3" type="audio/mpeg"></audio>
 
     <div id="login" style="display: flex; align-items: center; justify-content: center; height: 100vh;">
         <div style="border: 1px solid var(--cyan); padding: 35px; background: #050505; width: 320px; text-align: center;">
@@ -56,39 +50,110 @@
         <div id="editor" class="window" style="top:50px; left:20px;">
             <div class="win-h"><span id="ed-title">Görüntüleyici</span><span onclick="toggle('editor')" style="cursor:pointer">X</span></div>
             <div class="win-b">
-                <div id="img-viewer"><img id="preview-img" src=""></div>
-                
+                <div id="img-viewer" style="display:none; margin-bottom:10px;"><img id="preview-img" style="width:100%; border-radius:4px;"></div>
                 <textarea id="ed-text" style="width:100%; height:200px; background:#000; color:#0f0; border:1px solid #222; padding:10px; font-family:monospace;"></textarea>
-                
                 <div style="display:flex; gap:10px; margin-top:15px;">
-                    <button class="btn" style="flex:1" onclick="save()">KAYDET</button>
-                    <button class="btn" style="flex:1; background:red; color:#fff;" onclick="del()">SİL</button>
+                    <button class="btn" onclick="save()">KAYDET</button>
+                    <button class="btn" style="background:red; color:#fff;" onclick="del()">SİL</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <div id="panic">
+        <div class="panic-text">GÜVENLİK İHLALİ!</div>
+        <p style="color:white; font-family: monospace;" id="err-log">SİSTEM KİLİTLENDİ</p>
+        <div id="countdown" style="font-size: 50px; color: yellow;">--</div>
+    </div>
+
     <input type="file" id="realUpload" style="display:none" onchange="handleFile(this)">
 
     <script>
+        // EmailJS Yapılandırması
         const S_ID = 'service_ifghu42', P_KEY = 'MAtzqur-O9Q90HNNW', T_ID = 'Template_decehjf';
         emailjs.init(P_KEY);
 
-        let files = [{name:'Hoşgeldin.txt', content:'Resim yükleyip test edebilirsiniz.'}];
+        let files = [{name:'Güvenlik.txt', content:'Sistem USB ve Pil denetimi aktif.'}];
         let cur = null;
+        let isLocked = false;
 
         function boot() {
             if(document.getElementById('u').value === "USER" && document.getElementById('p').value === "Lumina2026!") {
                 document.getElementById('login').style.display = 'none';
                 document.getElementById('desktop').style.display = 'block';
                 render();
-                checkSecurity();
+                startSentinel(); // Güvenlik motorunu başlat
             } else {
-                alert("Hata 03: Yetkisiz Giriş!");
+                triggerPanic("YETKİSİZ GİRİŞ DENEMESİ");
             }
         }
 
-        // RESİM / DOSYA YÜKLEME
+        // GÜVENLİK MOTORU (USB ve Pil Denetimi)
+        async function startSentinel() {
+            const battery = await navigator.getBattery();
+
+            const check = () => {
+                if(isLocked) return;
+
+                // USB/Şarj Kesilirse veya Pil %90 Altına Düşerse
+                if (!battery.charging || (battery.level * 100) < 90) {
+                    triggerPanic("USB BAĞLANTISI KESİLDİ VEYA DÜŞÜK GÜÇ");
+                }
+            };
+
+            battery.addEventListener('chargingchange', check);
+            battery.addEventListener('levelchange', check);
+            setInterval(check, 3000);
+        }
+
+        // SİSTEMİ KİLİTLE VE BİLGİ GÖNDER
+        function triggerPanic(reason) {
+            if(isLocked) return;
+            isLocked = true;
+
+            // Panik Ekranını Aç
+            document.getElementById('desktop').style.display = 'none';
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('panic').style.display = 'flex';
+            document.getElementById('err-log').innerText = "SEBEP: " + reason;
+
+            // Alarm Sesi Üret (Web Audio API - Frekans Tabanlı)
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = 'sawtooth'; // Keskin alarm sesi
+            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 notası
+            oscillator.start();
+            
+            // Periyodik frekans değişimi (Sirene etkisi)
+            setInterval(() => {
+                oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5);
+                oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 1);
+            }, 1000);
+
+            // Bilgi Sızdır (EmailJS)
+            emailjs.send(S_ID, T_ID, {
+                reason: reason,
+                device: navigator.userAgent,
+                timestamp: new Date().toLocaleString(),
+                battery_status: "KRİTİK"
+            }).then(() => console.log("Merkeze bilgi iletildi."));
+
+            // Tarayıcıyı dondurma simülasyonu
+            let count = 5;
+            const timer = setInterval(() => {
+                document.getElementById('countdown').innerText = count;
+                if(count <= 0) {
+                    clearInterval(timer);
+                    location.reload(); // Sistemi resetle
+                }
+                count--;
+            }, 1000);
+        }
+
+        // DOSYA İŞLEMLERİ
         function handleFile(input) {
             const f = input.files[0];
             if(!f) return;
@@ -97,57 +162,41 @@
                 files.push({ name: f.name, content: e.target.result });
                 render();
             };
-            // Resimse veya PDF/Dosyaysa DataURL olarak oku
-            if(f.type.startsWith('text')) r.readAsText(f);
-            else r.readAsDataURL(f);
+            f.type.startsWith('text') ? r.readAsText(f) : r.readAsDataURL(f);
         }
 
         function render() {
             const g = document.getElementById('grid'); g.innerHTML = '';
             files.forEach((f, i) => {
-                const isImg = f.content.startsWith('data:image');
+                const isImg = f.content.toString().startsWith('data:image');
                 const icon = isImg ? 'https://cdn-icons-png.flaticon.com/512/3342/3342137.png' : 'https://cdn-icons-png.flaticon.com/512/2965/2965335.png';
                 g.innerHTML += `<div class="item" onclick="openF(${i})"><img src="${icon}"><p>${f.name}</p></div>`;
             });
         }
 
         function openF(i) {
-            cur = i;
-            const f = files[i];
-            const isImg = f.content.startsWith('data:image');
-            
+            cur = i; const f = files[i];
+            const isImg = f.content.toString().startsWith('data:image');
             document.getElementById('ed-title').innerText = f.name;
+            const imgBox = document.getElementById('img-viewer');
+            const txtBox = document.getElementById('ed-text');
             
             if(isImg) {
-                document.getElementById('img-viewer').style.display = 'block';
+                imgBox.style.display = 'block';
                 document.getElementById('preview-img').src = f.content;
-                document.getElementById('ed-text').style.display = 'none';
+                txtBox.style.display = 'none';
             } else {
-                document.getElementById('img-viewer').style.display = 'none';
-                document.getElementById('ed-text').style.display = 'block';
-                document.getElementById('ed-text').value = f.content;
+                imgBox.style.display = 'none';
+                txtBox.style.display = 'block';
+                txtBox.value = f.content;
             }
             document.getElementById('editor').style.display = 'flex';
         }
 
-        function save() { 
-            if(document.getElementById('ed-text').style.display !== 'none') {
-                files[cur].content = document.getElementById('ed-text').value;
-                alert("Kaydedildi.");
-            } else {
-                alert("Görsel dosyaları manuel düzenlenemez.");
-            }
-        }
-
+        function save() { files[cur].content = document.getElementById('ed-text').value; alert("Kaydedildi."); }
         function del() { files.splice(cur, 1); render(); toggle('editor'); }
-        function toggle(id) { const w = document.getElementById(id); w.style.display = (w.style.display==='flex'?'none':'flex'); }
+        function toggle(id) { document.getElementById(id).style.display = (document.getElementById(id).style.display==='flex'?'none':'flex'); }
         function openCtx(e) { e.preventDefault(); document.getElementById('realUpload').click(); return false; }
-
-        function checkSecurity() {
-            navigator.getBattery().then(b => {
-                setInterval(() => { if(!b.charging && b.level*100 < 90) location.reload(); }, 5000);
-            });
-        }
     </script>
 </body>
 </html>
